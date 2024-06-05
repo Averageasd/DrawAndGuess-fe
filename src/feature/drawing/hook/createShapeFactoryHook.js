@@ -15,7 +15,7 @@ export function useCreateShapeHook() {
                     width: size.width,
                     height: size.height,
                 });
-                return {...shape.attrs, id: id, color: color};
+                return {...shape.attrs, id: id, color: color, shapeType: 'rectangle'};
             case 'circle':
                 shape = new Konva.Circle({
                     x: pos.x,

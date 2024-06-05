@@ -44,7 +44,7 @@ export function useDrawingHook() {
         const id = uuidv4();
         isDrawing.current = true;
         const pos = e.target.getStage().getPointerPosition();
-        setLines([...lines, {id: id, color: selectedColor, points: [pos.x, pos.y]}]);
+        setLines([...lines, {id: id, color: selectedColor, shapeType: 'line', points: [pos.x, pos.y]}]);
     }
 
     function handleMouseMove(e) {
@@ -59,31 +59,97 @@ export function useDrawingHook() {
     }
 
     function handleEraserMovement(point) {
-        if (eraser) {
-            console.log('using eraser');
-            const curEraser = {...eraser, x: point.x, y: point.y};
-            const curShapes = [...shapes];
-            for (const shape of shapes) {
-                if (handleEraserCollision(eraser, shape)) {
-                    if (curShapes.length > 0) {
-                        const indexOfCollidedObject = curShapes.indexOf(shape);
-                        curShapes.splice(indexOfCollidedObject, 1);
-                    }
+        console.log('using eraser');
+        const curEraser = {...eraser, x: point.x, y: point.y};
+        const curShapes = [...shapes];
+        const curLines = [...lines];
+        for (const shape of shapes) {
+            if (handleEraserCollision(eraser, shape, shape.shapeType)) {
+                if (curShapes.length > 0) {
+                    const indexOfCollidedObject = curShapes.indexOf(shape);
+                    curShapes.splice(indexOfCollidedObject, 1);
                 }
             }
-
-            setShapes([...curShapes]);
-            setEraser({...eraser, x: point.x, y: point.y});
         }
 
+        for (const line of lines) {
+            if (handleEraserCollision(eraser, line, line.shapeType)) {
+                if (curLines.length > 0) {
+                    const indexOfCollidedObject = curLines.indexOf(line);
+                    curLines.splice(indexOfCollidedObject, 1);
+                }
+            }
+        }
+
+        setShapes([...curShapes]);
+        setLines([...curLines]);
+        setEraser({...curEraser, x: point.x, y: point.y});
     }
 
-    function handleEraserCollision(eraser, otherObj) {
-        return eraser.x + eraser.width > otherObj.x
-            && otherObj.x + otherObj.width > eraser.x
-            && eraser.y + eraser.height > otherObj.y
-            && eraser.y < otherObj.y + otherObj.height;
+    function handleEraserCollision(eraser, otherObj, shape) {
+        if (shape === 'rectangle') {
+            return handleRectCollision(eraser, otherObj);
+        } else if (shape === 'line') {
+            return handleLineCollision(eraser, otherObj);
+        }
+        return false;
     }
+
+    function handleRectCollision(eraser, otherRect) {
+        return eraser.x + eraser.width > otherRect.x
+            && otherRect.x + otherRect.width > eraser.x
+            && eraser.y + eraser.height > otherRect.y
+            && eraser.y < otherRect.y + otherRect.height;
+    }
+
+    function handleLineCollision(eraser, line) {
+        const eraserTop = {
+            x1: eraser.x,
+            y1: eraser.y,
+            x2: eraser.x + eraser.width,
+            y2: eraser.y
+        };
+        const eraserLeft = {
+            x1: eraser.x,
+            y1: eraser.y,
+            x2: eraser.x,
+            y2: eraser.y + eraser.height
+        };
+        const eraserBottom = {
+            x1: eraser.x,
+            y1: eraser.y + eraser.height,
+            x2: eraser.x + eraser.width,
+            y2: eraser.y + eraser.height
+        };
+        const eraserRight = {
+            x1: eraser.x + eraser.width,
+            y1: eraser.y,
+            x2: eraser.x + eraser.width,
+            y2: eraser.y + eraser.height
+        };
+
+        const linePoints = {
+            x3: line.points[0],
+            y3: line.points[1],
+            x4: line.points[line.points.length - 2],
+            y4: line.points[line.points.length - 1],
+        }
+
+        return lineCollisionHelper(eraserTop, linePoints)
+            || lineCollisionHelper(eraserBottom, linePoints)
+            || lineCollisionHelper(eraserLeft, linePoints)
+            || lineCollisionHelper(eraserRight, linePoints);
+    }
+
+    function lineCollisionHelper(eraserLine, line) {
+
+        const {x1, y1, x2, y2} = eraserLine;
+        const {x3, y3, x4, y4} = line;
+        const unknownA = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+        const unknownB = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+        return unknownA >= 0 && unknownA <= 1 && unknownB >= 0 && unknownB <= 1;
+    }
+
 
     function handleLineDrawing(point) {
         if (!isDrawing.current) {
@@ -94,7 +160,13 @@ export function useDrawingHook() {
 
         const newLines = [...lines];
         let lastLine = newLines[newLines.length - 1];
-        let newLastLinePoints = [...lastLine.points].concat([point.x, point.y]);
+        let newLastLinePoints = [...lastLine.points];
+        if (newLastLinePoints.length === 2) {
+            newLastLinePoints = newLastLinePoints.concat([point.x, point.y]);
+        } else {
+            newLastLinePoints[2] = point.x;
+            newLastLinePoints[3] = point.y;
+        }
         lastLine = {...lastLine, color: selectedColor, points: newLastLinePoints};
         newLines.splice(newLines.length - 1, 1, lastLine);
         setLines(newLines);
