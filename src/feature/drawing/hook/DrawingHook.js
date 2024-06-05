@@ -51,11 +51,41 @@ export function useDrawingHook() {
         const stage = e.target.getStage();
         const point = stage.getPointerPosition();
         if (eraser) {
-            console.log('using eraser');
-            setEraser({...eraser, x: point.x, y: point.y});
+            handleEraserMovement(point);
             return;
         }
-        // no drawing - skipping
+        handleLineDrawing(point);
+
+    }
+
+    function handleEraserMovement(point) {
+        if (eraser) {
+            console.log('using eraser');
+            const curEraser = {...eraser, x: point.x, y: point.y};
+            const curShapes = [...shapes];
+            for (const shape of shapes) {
+                if (handleEraserCollision(eraser, shape)) {
+                    if (curShapes.length > 0) {
+                        const indexOfCollidedObject = curShapes.indexOf(shape);
+                        curShapes.splice(indexOfCollidedObject, 1);
+                    }
+                }
+            }
+
+            setShapes([...curShapes]);
+            setEraser({...eraser, x: point.x, y: point.y});
+        }
+
+    }
+
+    function handleEraserCollision(eraser, otherObj) {
+        return eraser.x + eraser.width > otherObj.x
+            && otherObj.x + otherObj.width > eraser.x
+            && eraser.y + eraser.height > otherObj.y
+            && eraser.y < otherObj.y + otherObj.height;
+    }
+
+    function handleLineDrawing(point) {
         if (!isDrawing.current) {
             return;
         }
