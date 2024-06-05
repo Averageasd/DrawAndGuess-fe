@@ -1,8 +1,17 @@
-# React + Vite
+## About
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An online guessing game where the room host will draw some random shapes in a canvas and has
+players to guess the meaning of these shapes. Once the game is over, each player will be
+provided a score and the highest scoring player will be declared winner.
 
-Currently, two official plugins are available:
+## Technologies
+Konva.js, Tailwind, Socket.IO, React, Javascript, MongoDB, Express, Node.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Status
+The basic canvas with shape and eraser selection modes is finished. Socket.IO will be
+integrated and other advanced features such as shape deletion, undo/redo, shape resize will
+be implemented. Leaderboard is a nice to have feature and will be added.
+
+## Future extensions:
+The canvas functionalities in this game can be used for other online games implementations whose mechanics are harder
+and more complex. 
