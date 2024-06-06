@@ -1,6 +1,3 @@
-import raised from "react-color/lib/components/common/Raised.js";
-import {useImperativeHandle} from "react";
-
 export function useHandleCircleCollisionHook() {
     function handleCircleCollision(eraser, circle) {
         const circleX = circle.x;
