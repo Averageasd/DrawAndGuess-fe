@@ -21,10 +21,9 @@ export function useCreateShapeHook() {
                     x: pos.x,
                     y: pos.y,
                     fill: color,
-                    width: 30,
-                    height: 30
+                    radius: size.radius,
                 });
-                return {...shape.attrs, id: id, color: color};
+                return {...shape.attrs, id: id, color: color, shapeType: 'circle'};
         }
     }
 

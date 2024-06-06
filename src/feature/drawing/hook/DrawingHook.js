@@ -2,6 +2,8 @@ import {useContext} from "react";
 import {AppContext} from "../../../context/AppProvider.jsx";
 import {v4 as uuidv4} from "uuid";
 import {useCreateShapeHook} from "./createShapeFactoryHook.js";
+import {useHandleRectCollisionHook} from "./handleRectCollisionHook.js";
+import {useHandleLineCollisionHook} from "./handleLineCollisionHook.js";
 
 export function useDrawingHook() {
     const {
@@ -18,9 +20,11 @@ export function useDrawingHook() {
         isDrawing
     } = useContext(AppContext);
 
-    const {
-        createShape
-    } = useCreateShapeHook();
+    const {createShape} = useCreateShapeHook();
+
+    const {handleRectCollision} = useHandleRectCollisionHook();
+
+    const {handleLineCollision} = useHandleLineCollisionHook();
 
     function handleColorChange(color, event) {
         setSelectedColor(color.hex);
@@ -37,8 +41,20 @@ export function useDrawingHook() {
         }
     }
 
+    function canUseEraser() {
+        return eraser !== null;
+    }
+
+    function canDrawLine() {
+        return drawShapeMode && drawShapeMode === 'line';
+    }
+
+    function canDrawShape() {
+        return drawShapeMode && drawShapeMode === 'circle' || drawShapeMode === 'rectangle';
+    }
+
     function handleMouseDown(e) {
-        if (eraser) {
+        if (canUseEraser() || !canDrawLine()) {
             return;
         }
         const id = uuidv4();
@@ -50,7 +66,7 @@ export function useDrawingHook() {
     function handleMouseMove(e) {
         const stage = e.target.getStage();
         const point = stage.getPointerPosition();
-        if (eraser) {
+        if (canUseEraser()) {
             handleEraserMovement(point);
             return;
         }
@@ -59,7 +75,6 @@ export function useDrawingHook() {
     }
 
     function handleEraserMovement(point) {
-        console.log('using eraser');
         const curEraser = {...eraser, x: point.x, y: point.y};
         const curShapes = [...shapes];
         const curLines = [...lines];
@@ -95,69 +110,10 @@ export function useDrawingHook() {
         return false;
     }
 
-    function handleRectCollision(eraser, otherRect) {
-        return eraser.x + eraser.width > otherRect.x
-            && otherRect.x + otherRect.width > eraser.x
-            && eraser.y + eraser.height > otherRect.y
-            && eraser.y < otherRect.y + otherRect.height;
-    }
-
-    function handleLineCollision(eraser, line) {
-        const eraserTop = {
-            x1: eraser.x,
-            y1: eraser.y,
-            x2: eraser.x + eraser.width,
-            y2: eraser.y
-        };
-        const eraserLeft = {
-            x1: eraser.x,
-            y1: eraser.y,
-            x2: eraser.x,
-            y2: eraser.y + eraser.height
-        };
-        const eraserBottom = {
-            x1: eraser.x,
-            y1: eraser.y + eraser.height,
-            x2: eraser.x + eraser.width,
-            y2: eraser.y + eraser.height
-        };
-        const eraserRight = {
-            x1: eraser.x + eraser.width,
-            y1: eraser.y,
-            x2: eraser.x + eraser.width,
-            y2: eraser.y + eraser.height
-        };
-
-        const linePoints = {
-            x3: line.points[0],
-            y3: line.points[1],
-            x4: line.points[line.points.length - 2],
-            y4: line.points[line.points.length - 1],
-        }
-
-        return lineCollisionHelper(eraserTop, linePoints)
-            || lineCollisionHelper(eraserBottom, linePoints)
-            || lineCollisionHelper(eraserLeft, linePoints)
-            || lineCollisionHelper(eraserRight, linePoints);
-    }
-
-    function lineCollisionHelper(eraserLine, line) {
-
-        const {x1, y1, x2, y2} = eraserLine;
-        const {x3, y3, x4, y4} = line;
-        const unknownA = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
-        const unknownB = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
-        return unknownA >= 0 && unknownA <= 1 && unknownB >= 0 && unknownB <= 1;
-    }
-
-
     function handleLineDrawing(point) {
         if (!isDrawing.current) {
             return;
         }
-
-        // get points of pointer
-
         const newLines = [...lines];
         let lastLine = newLines[newLines.length - 1];
         let newLastLinePoints = [...lastLine.points];
@@ -173,23 +129,30 @@ export function useDrawingHook() {
     }
 
     function handleMouseClick(e) {
-        if (eraser) {
+        if (canUseEraser() || !canDrawShape()) {
             return;
         }
         const stage = e.target.getStage();
         const point = stage.getPointerPosition();
-        setShapes([...shapes, {...createShape(point, {width: 30, height: 30}, selectedColor, 'rectangle')}]);
+        setShapes([...shapes, {
+            ...createShape(point, {
+                width: 30,
+                height: 30,
+                radius: 15
+            }, selectedColor, drawShapeMode)
+        }]);
     }
 
     function handleMouseUp() {
-        if (eraser) {
+        if (canUseEraser()) {
             return;
         }
         isDrawing.current = false;
     }
 
     function chooseShape(e) {
-        console.log(e.target.textContent);
+        isDrawing.current = false;
+        setEraser(null);
         setDrawShapeMode(e.target.textContent);
     }
 

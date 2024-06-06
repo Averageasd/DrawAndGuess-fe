@@ -1,6 +1,6 @@
 import './index.css'
 import {CompactPicker} from "react-color";
-import {Line, Rect, Stage} from "react-konva";
+import {Circle, Line, Rect, Stage} from "react-konva";
 import {Layer} from "react-konva";
 import {useDrawingHook} from "./feature/drawing/hook/DrawingHook.js";
 
@@ -48,7 +48,10 @@ function App() {
                     }}
                 >rectangle
                 </button>
-                <button>circle</button>
+                <button onClick={(e) => {
+                    chooseShape(e);
+                }}>circle
+                </button>
             </div>
 
             <div>
@@ -79,17 +82,29 @@ function App() {
                                   fill={eraser.color}></Rect>}
 
                         {shapes.map((shape) => {
-                            return (
-                                <Rect
+                            if (shape.shapeType === 'rectangle') {
+                                return (
+                                    <Rect
+                                        key={shape.id}
+                                        x={shape.x}
+                                        y={shape.y}
+                                        width={shape.width}
+                                        height={shape.height}
+                                        fill={shape.color}
+                                    >
+                                    </Rect>
+                                )
+                            } else if (shape.shapeType === 'circle') {
+                                return <Circle
                                     key={shape.id}
                                     x={shape.x}
                                     y={shape.y}
-                                    width={shape.width}
-                                    height={shape.height}
+                                    radius={shape.radius}
                                     fill={shape.color}
                                 >
-                                </Rect>
-                            )
+                                </Circle>
+                            }
+
 
                         })}
 
