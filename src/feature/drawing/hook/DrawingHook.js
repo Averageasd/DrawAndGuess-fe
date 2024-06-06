@@ -4,6 +4,7 @@ import {v4 as uuidv4} from "uuid";
 import {useCreateShapeHook} from "./createShapeFactoryHook.js";
 import {useHandleRectCollisionHook} from "./handleRectCollisionHook.js";
 import {useHandleLineCollisionHook} from "./handleLineCollisionHook.js";
+import {useHandleCircleCollisionHook} from "./handleCircleCollisionHook.js";
 
 export function useDrawingHook() {
     const {
@@ -25,6 +26,8 @@ export function useDrawingHook() {
     const {handleRectCollision} = useHandleRectCollisionHook();
 
     const {handleLineCollision} = useHandleLineCollisionHook();
+
+    const {handleCircleCollision} = useHandleCircleCollisionHook();
 
     function handleColorChange(color, event) {
         setSelectedColor(color.hex);
@@ -106,6 +109,8 @@ export function useDrawingHook() {
             return handleRectCollision(eraser, otherObj);
         } else if (shape === 'line') {
             return handleLineCollision(eraser, otherObj);
+        } else if (shape === 'circle') {
+            return handleCircleCollision(eraser, otherObj);
         }
         return false;
     }
