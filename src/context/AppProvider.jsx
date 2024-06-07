@@ -9,6 +9,7 @@ export function AppProvider({children}) {
     const [shapes, setShapes] = useState([]);
     const [drawShapeMode, setDrawShapeMode] = useState('line');
     const isDrawing = useRef(false);
+    const canCreateShape = useRef(false);
     const [eraser, setEraser] = useState(null);
 
 
@@ -26,6 +27,7 @@ export function AppProvider({children}) {
                 drawShapeMode: drawShapeMode,
                 setDrawShapeMode: setDrawShapeMode,
                 isDrawing: isDrawing,
+                canCreateShape: canCreateShape,
             }}>
             {children}
         </AppContext.Provider>

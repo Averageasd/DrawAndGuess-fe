@@ -71,8 +71,8 @@ function App() {
                                 stroke={line.color}
                                 strokeWidth={12}
                                 tension={0.5}
-                                lineCap="round"
-                                lineJoin="round"
+                                lineCap="butt"
+                                lineJoin="butt"
                                 globalCompositeOperation={'source-over'}
                             />
                         ))}

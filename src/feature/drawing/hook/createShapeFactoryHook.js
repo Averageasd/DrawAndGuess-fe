@@ -1,6 +1,5 @@
 import Konva from "konva";
 import {v4 as uuidv4} from "uuid";
-import saturation from "react-color/lib/components/common/Saturation.js";
 
 export function useCreateShapeHook() {
 

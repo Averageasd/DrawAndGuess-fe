@@ -18,15 +18,12 @@ export function useDrawingHook() {
         setEraser,
         drawShapeMode,
         setDrawShapeMode,
-        isDrawing
+        isDrawing,
+        canCreateShape,
     } = useContext(AppContext);
-
     const {createShape} = useCreateShapeHook();
-
     const {handleRectCollision} = useHandleRectCollisionHook();
-
     const {handleLineCollision} = useHandleLineCollisionHook();
-
     const {handleCircleCollision} = useHandleCircleCollisionHook();
 
     function handleColorChange(color, event) {
@@ -38,10 +35,9 @@ export function useDrawingHook() {
             setEraser(null);
             return;
         }
+        isDrawing.current = false;
+        canCreateShape.current = false;
         setEraser({...createShape({x: 0, y: 0}, {width: 20, height: 20}, 'white', 'rectangle')});
-        if (isDrawing.current) {
-            isDrawing.current = false;
-        }
     }
 
     function canUseEraser() {
@@ -53,7 +49,7 @@ export function useDrawingHook() {
     }
 
     function canDrawShape() {
-        return drawShapeMode && drawShapeMode === 'circle' || drawShapeMode === 'rectangle';
+        return drawShapeMode && canCreateShape.current;
     }
 
     function handleMouseDown(e) {
@@ -63,7 +59,13 @@ export function useDrawingHook() {
         const id = uuidv4();
         isDrawing.current = true;
         const pos = e.target.getStage().getPointerPosition();
-        setLines([...lines, {id: id, color: selectedColor, shapeType: 'line', points: [pos.x, pos.y]}]);
+        setLines([...lines, {
+            id: id,
+            color: selectedColor,
+            shapeType: 'line',
+            isLineEditing: true,
+            points: [pos.x, pos.y]
+        }]);
     }
 
     function handleMouseMove(e) {
@@ -119,12 +121,18 @@ export function useDrawingHook() {
         if (!isDrawing.current) {
             return;
         }
+        if (lines.length === 0) {
+            return;
+        }
         const newLines = [...lines];
         let lastLine = newLines[newLines.length - 1];
+        if (!lastLine.isLineEditing) {
+            return;
+        }
         let newLastLinePoints = [...lastLine.points];
         if (newLastLinePoints.length === 2) {
             newLastLinePoints = newLastLinePoints.concat([point.x, point.y]);
-        } else {
+        } else if (newLastLinePoints.length === 4) {
             newLastLinePoints[2] = point.x;
             newLastLinePoints[3] = point.y;
         }
@@ -134,11 +142,25 @@ export function useDrawingHook() {
     }
 
     function handleMouseClick(e) {
+        console.log('can draw shape ', canDrawShape());
         if (canUseEraser() || !canDrawShape()) {
+            return;
+        }
+
+        // clicked on an object, do nothing
+        // if click on empty area in stage, draw
+        if (e.target !== e.target.getStage()) {
             return;
         }
         const stage = e.target.getStage();
         const point = stage.getPointerPosition();
+        if (canCreateShape.current === true) {
+            handleCreateObject(point);
+        }
+
+    }
+
+    function handleCreateObject(point) {
         setShapes([...shapes, {
             ...createShape(point, {
                 width: 30,
@@ -156,9 +178,31 @@ export function useDrawingHook() {
     }
 
     function chooseShape(e) {
-        isDrawing.current = false;
+        removeInCompleteLines();
+        if (e.target.textContent !== 'line') {
+            isDrawing.current = false;
+            canCreateShape.current = true;
+        } else {
+            isDrawing.current = true;
+            canCreateShape.current = false;
+        }
         setEraser(null);
         setDrawShapeMode(e.target.textContent);
+    }
+
+    function removeInCompleteLines() {
+        const newLines = [...lines];
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            if (line.points.length === 2) {
+                const indexOfIncompleteLine = newLines.indexOf(line);
+                newLines.splice(indexOfIncompleteLine, 1);
+            } else if (line.isLineEditing) {
+                const indexOfEditedLine = newLines.indexOf(line);
+                newLines[indexOfEditedLine] = {...line, points: [...line.points], isLineEditing: false};
+            }
+        }
+        setLines([...newLines]);
     }
 
     return {
@@ -175,5 +219,6 @@ export function useDrawingHook() {
         handleMouseClick,
         handleMouseUp,
         chooseShape,
+        canCreateShape,
     }
 }
