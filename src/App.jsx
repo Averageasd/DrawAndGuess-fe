@@ -3,6 +3,7 @@ import {CompactPicker} from "react-color";
 import {Circle, Line, Rect, Stage} from "react-konva";
 import {Layer} from "react-konva";
 import {useDrawingHook} from "./feature/drawing/hook/DrawingHook.js";
+import {useState} from "react";
 
 function App() {
 
@@ -19,7 +20,12 @@ function App() {
         handleMouseClick,
         handleMouseUp,
         chooseShape,
+        keydownListener,
+        keyupListener,
+        isDraggingCanvas,
     } = useDrawingHook();
+
+    const [canvasState, setCanvasState] = useState({x: 0, y: 0});
 
     return (
         <section>
@@ -54,14 +60,25 @@ function App() {
                 </button>
             </div>
 
-            <div>
+            <div tabIndex={1} onKeyDown={keydownListener} onKeyUp={keyupListener}>
                 <Stage
+                    listening={true}
+                    x={canvasState.x}
+                    y={canvasState.y}
                     width={window.innerWidth}
                     height={window.innerHeight}
                     onMouseDown={handleMouseDown}
                     onMousemove={handleMouseMove}
                     onMouseup={handleMouseUp}
                     onClick={handleMouseClick}
+                    draggable={isDraggingCanvas}
+                    onDragEnd={isDraggingCanvas ? (e) => {
+                        setCanvasState({
+                            ...canvasState,
+                            x: e.target.x(),
+                            y: e.target.y(),
+                        });
+                    } : undefined}
                 >
                     <Layer>
                         {lines.map((line) => (

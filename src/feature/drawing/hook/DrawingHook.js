@@ -20,11 +20,26 @@ export function useDrawingHook() {
         setDrawShapeMode,
         isDrawing,
         canCreateShape,
+        isDraggingCanvas,
+        setIsDraggingCanvas,
+        isErasing,
     } = useContext(AppContext);
     const {createShape} = useCreateShapeHook();
     const {handleRectCollision} = useHandleRectCollisionHook();
     const {handleLineCollision} = useHandleLineCollisionHook();
     const {handleCircleCollision} = useHandleCircleCollisionHook();
+
+    function keydownListener(e) {
+        if (e.keyCode === 32) {
+            removeInCompleteLines();
+            setIsDraggingCanvas(true);
+        }
+
+    }
+
+    function keyupListener(e) {
+        setIsDraggingCanvas(false);
+    }
 
     function handleColorChange(color, event) {
         setSelectedColor(color.hex);
@@ -35,13 +50,13 @@ export function useDrawingHook() {
             setEraser(null);
             return;
         }
+        isErasing.current = true;
         isDrawing.current = false;
         canCreateShape.current = false;
-        setEraser({...createShape({x: 0, y: 0}, {width: 20, height: 20}, 'white', 'rectangle')});
     }
 
     function canUseEraser() {
-        return eraser !== null;
+        return isErasing.current;
     }
 
     function canDrawLine() {
@@ -53,12 +68,17 @@ export function useDrawingHook() {
     }
 
     function handleMouseDown(e) {
+        if (isDraggingCanvas) {
+            removeInCompleteLines();
+            return;
+        }
+
         if (canUseEraser() || !canDrawLine()) {
             return;
         }
         const id = uuidv4();
         isDrawing.current = true;
-        const pos = e.target.getStage().getPointerPosition();
+        const pos = e.target.getStage().getRelativePointerPosition();
         setLines([...lines, {
             id: id,
             color: selectedColor,
@@ -70,8 +90,18 @@ export function useDrawingHook() {
 
     function handleMouseMove(e) {
         const stage = e.target.getStage();
-        const point = stage.getPointerPosition();
+        const point = stage.getRelativePointerPosition();
+        if (isDraggingCanvas) {
+            removeInCompleteLines();
+            setEraser(null);
+            return;
+        }
         if (canUseEraser()) {
+            if (!eraser) {
+                setEraser({...createShape(point, {width: 20, height: 20}, 'white', 'rectangle')});
+            } else {
+                setEraser({...eraser, point: {x: point.x, y: point.y}});
+            }
             handleEraserMovement(point);
             return;
         }
@@ -80,6 +110,9 @@ export function useDrawingHook() {
     }
 
     function handleEraserMovement(point) {
+        if (!eraser) {
+            return;
+        }
         const curEraser = {...eraser, x: point.x, y: point.y};
         const curShapes = [...shapes];
         const curLines = [...lines];
@@ -118,6 +151,10 @@ export function useDrawingHook() {
     }
 
     function handleLineDrawing(point) {
+        if (isDraggingCanvas) {
+            removeInCompleteLines();
+            return;
+        }
         if (!isDrawing.current) {
             return;
         }
@@ -126,15 +163,15 @@ export function useDrawingHook() {
         }
         const newLines = [...lines];
         let lastLine = newLines[newLines.length - 1];
-        if (!lastLine.isLineEditing) {
-            return;
-        }
         let newLastLinePoints = [...lastLine.points];
         if (newLastLinePoints.length === 2) {
             newLastLinePoints = newLastLinePoints.concat([point.x, point.y]);
         } else if (newLastLinePoints.length === 4) {
-            newLastLinePoints[2] = point.x;
-            newLastLinePoints[3] = point.y;
+            if (lastLine.isLineEditing) {
+                newLastLinePoints[2] = point.x;
+                newLastLinePoints[3] = point.y;
+            }
+
         }
         lastLine = {...lastLine, color: selectedColor, points: newLastLinePoints};
         newLines.splice(newLines.length - 1, 1, lastLine);
@@ -142,7 +179,11 @@ export function useDrawingHook() {
     }
 
     function handleMouseClick(e) {
-        console.log('can draw shape ', canDrawShape());
+        if (isDraggingCanvas) {
+            removeInCompleteLines();
+            return;
+        }
+
         if (canUseEraser() || !canDrawShape()) {
             return;
         }
@@ -152,12 +193,13 @@ export function useDrawingHook() {
         if (e.target !== e.target.getStage()) {
             return;
         }
+
+
         const stage = e.target.getStage();
-        const point = stage.getPointerPosition();
+        const point = stage.getRelativePointerPosition();
         if (canCreateShape.current === true) {
             handleCreateObject(point);
         }
-
     }
 
     function handleCreateObject(point) {
@@ -171,9 +213,7 @@ export function useDrawingHook() {
     }
 
     function handleMouseUp() {
-        if (canUseEraser()) {
-            return;
-        }
+        removeInCompleteLines();
         isDrawing.current = false;
     }
 
@@ -187,6 +227,7 @@ export function useDrawingHook() {
             canCreateShape.current = false;
         }
         setEraser(null);
+        isErasing.current = false;
         setDrawShapeMode(e.target.textContent);
     }
 
@@ -220,5 +261,8 @@ export function useDrawingHook() {
         handleMouseUp,
         chooseShape,
         canCreateShape,
+        keydownListener,
+        keyupListener,
+        isDraggingCanvas,
     }
 }

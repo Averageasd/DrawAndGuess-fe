@@ -10,6 +10,8 @@ export function AppProvider({children}) {
     const [drawShapeMode, setDrawShapeMode] = useState('line');
     const isDrawing = useRef(false);
     const canCreateShape = useRef(false);
+    const isErasing = useRef(false);
+    const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
     const [eraser, setEraser] = useState(null);
 
 
@@ -28,6 +30,9 @@ export function AppProvider({children}) {
                 setDrawShapeMode: setDrawShapeMode,
                 isDrawing: isDrawing,
                 canCreateShape: canCreateShape,
+                isDraggingCanvas: isDraggingCanvas,
+                setIsDraggingCanvas: setIsDraggingCanvas,
+                isErasing: isErasing,
             }}>
             {children}
         </AppContext.Provider>
